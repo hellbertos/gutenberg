@@ -375,35 +375,42 @@ export function getEditedPostPreviewLink( state ) {
  * @param  {String} uid   Block unique ID
  * @return {Object}       Parsed block object
  */
-export function getBlock( state, uid ) {
-	const block = state.editor.blocksByUid[ uid ];
-	const type = getBlockType( block.name );
+export const getBlock = createSelector(
+	( state, uid ) => {
+		const block = state.editor.blocksByUid[ uid ];
+		const type = getBlockType( block.name );
 
-	if ( ! block || ! type ) {
-		return block;
-	}
-
-	const metaAttributes = reduce( type.attributes, ( result, value, key ) => {
-		if ( 'meta' in value ) {
-			result[ key ] = getPostMeta( state, value.meta );
+		if ( ! block || ! type || ! type.attributes ) {
+			return block;
 		}
 
-		return result;
-	}, {} );
+		const metaAttributes = reduce( type.attributes, ( result, value, key ) => {
+			if ( 'meta' in value ) {
+				result[ key ] = getPostMeta( state, value.meta );
+			}
 
-	// Avoid injecting an empty `attributes: {}`
-	if ( ! block.attributes && ! metaAttributes.length ) {
-		return block;
-	}
+			return result;
+		}, {} );
 
-	return {
-		...block,
-		attributes: {
-			...block.attributes,
-			...metaAttributes,
-		},
-	};
-}
+		// Avoid injecting an empty `attributes: {}`
+		if ( ! block.attributes && ! metaAttributes.length ) {
+			return block;
+		}
+
+		return {
+			...block,
+			attributes: {
+				...block.attributes,
+				...metaAttributes,
+			},
+		};
+	},
+	( state, uid ) => [
+		state.editor.blocksByUid[ uid ],
+		state.editor.edits.meta,
+		state.currentPost.meta,
+	]
+);
 
 function getPostMeta( state, key ) {
 	return ( state.editor.edits.meta === undefined ||
